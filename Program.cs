@@ -1,7 +1,27 @@
 // создается билдер веб приложения
+
+using Dapper;
+using FluentValidation;
+using SolutionLab1.BLL.Services;
+using SolutionLab1.DAL;
+using SolutionLab1.DAL.Interfaces;
+using SolutionLab1.DAL.Repositories;
+using SolutionLab1.Validators;
+
 var builder = WebApplication.CreateBuilder(args);
 
+DefaultTypeMap.MatchNamesWithUnderscores = true;
+builder.Services.AddScoped<UnitOfWork>();
+builder.Services.Configure<DbSettings>(builder.Configuration.GetSection(nameof(DbSettings)));
 // зависимость, которая автоматически подхватывает все контроллеры в проекте
+
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<IOrderItemRepository, OrderItemRepository>();
+builder.Services.AddScoped<OrderService>();
+
+builder.Services.AddValidatorsFromAssemblyContaining(typeof(Program));
+builder.Services.AddScoped<ValidatorFactory>();
+
 builder.Services.AddControllers();
 // добавляем swagger
 builder.Services.AddSwaggerGen();
