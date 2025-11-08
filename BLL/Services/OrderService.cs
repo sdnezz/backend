@@ -1,11 +1,14 @@
-﻿using SolutionLab1.BLL.Models;
+﻿using Messages;
+using Microsoft.Extensions.Options;
+using SolutionLab1.BLL.Models;
+using SolutionLab1.Config;
 using SolutionLab1.DAL;
 using SolutionLab1.DAL.Interfaces;
 using SolutionLab1.DAL.Models;
 
 namespace SolutionLab1.BLL.Services;
 
-public class OrderService(UnitOfWork unitOfWork, IOrderRepository orderRepository, IOrderItemRepository orderItemRepository)
+public class OrderService(UnitOfWork unitOfWork, IOrderRepository orderRepository, IOrderItemRepository orderItemRepository, RabbitMqService _rabbitMqService, IOptions<RabbitMqSettings> rabbitMqSettings)
 {
     /// <summary>
     /// Метод создания заказов
@@ -17,10 +20,8 @@ public class OrderService(UnitOfWork unitOfWork, IOrderRepository orderRepositor
 
         try
         {
-// 1) Подготовим массив V1OrderDal для bulk-insert'а заказов
-            var ordersToInsert = orderUnits.Select(o => new V1OrderDal
+            var ordersDal = orderUnits.Select(o => new V1OrderDal
             {
-                // Не включаем Id — это заполнит БД (bigserial)
                 CustomerId = o.CustomerId,
                 DeliveryAddress = o.DeliveryAddress,
                 TotalPriceCents = o.TotalPriceCents,
@@ -29,51 +30,64 @@ public class OrderService(UnitOfWork unitOfWork, IOrderRepository orderRepositor
                 UpdatedAt = now
             }).ToArray();
 
-            // 2) Вставляем заказы и получаем их с заполненными id (RETURNING)
-            var insertedOrders = await orderRepository.BulkInsert(ordersToInsert, token);
+            var insertedOrders = await orderRepository.BulkInsert(ordersDal, token);
 
-            // 3) Подготовим все позиции, привязав их к соответствующим вставленным заказам.
-            // Предполагаем, что insertedOrders возвращается в том же порядке, что и входные ordersToInsert.
-            var allOrderItems = new List<V1OrderItemDal>();
-            for (int i = 0; i < insertedOrders.Length; i++)
+            var orderItemsDal = new List<V1OrderItemDal>();
+            for (int i=0; i < orderUnits.Length; i++)
             {
-                var createdOrder = insertedOrders[i];
-                var sourceOrderUnit = orderUnits.Length > i ? orderUnits[i] : null;
-                var sourceItems = sourceOrderUnit?.OrderItems ?? Array.Empty<OrderItemUnit>();
-
-                foreach (var it in sourceItems)
+                var orderId = insertedOrders[i].Id;
+                var orderItems = orderUnits[i].OrderItems;
+                orderItemsDal.AddRange(orderItems.Select(oi => new V1OrderItemDal
                 {
-                    allOrderItems.Add(new V1OrderItemDal
-                    {
-                        // Привязываем к id созданного заказа
-                        OrderId = createdOrder.Id,
-                        ProductId = it.ProductId,
-                        Quantity = it.Quantity,
-                        ProductTitle = it.ProductTitle,
-                        ProductUrl = it.ProductUrl,
-                        PriceCents = it.PriceCents,
-                        PriceCurrency = it.PriceCurrency,
-                        CreatedAt = now,
-                        UpdatedAt = now
-                    });
-                }
+                    OrderId = orderId,
+                    ProductId = oi.ProductId,
+                    Quantity = oi.Quantity,
+                    ProductTitle = oi.ProductTitle,
+                    ProductUrl = oi.ProductUrl,
+                    PriceCents = oi.PriceCents,
+                    PriceCurrency = oi.PriceCurrency,
+                    CreatedAt = now,
+                    UpdatedAt = now
+                }));
             }
 
-            // 4) Если есть позиции — вставляем их
-            V1OrderItemDal[] insertedItems = Array.Empty<V1OrderItemDal>();
-            if (allOrderItems.Count > 0)
+            V1OrderItemDal[] insertedOrderItems = Array.Empty<V1OrderItemDal>();
+            if (orderItemsDal.Any())
             {
-                insertedItems = await orderItemRepository.BulkInsert(allOrderItems.ToArray(), token);
+                insertedOrderItems = await orderItemRepository.BulkInsert(orderItemsDal.ToArray(), token);
             }
 
-            // 5) Коммит транзакции
+            var orderItemLookup = insertedOrderItems.ToLookup(x => x.OrderId);
+
             await transaction.CommitAsync(token);
+            
+            var messages = insertedOrders.Select(order => new OrderCreatedMessage
+            {
+                Id = order.Id,
+                CustomerId = order.CustomerId,
+                DeliveryAddress = order.DeliveryAddress,
+                TotalPriceCents = order.TotalPriceCents,
+                TotalPriceCurrency = order.TotalPriceCurrency,
+                CreatedAt = order.CreatedAt,
+                UpdatedAt = order.UpdatedAt,
+                OrderItems = orderItemLookup[order.Id]?.Select(item => new OrderCreatedMessage.OrderItemMessage
+                {
+                    Id = item.Id,
+                    OrderId = item.OrderId,
+                    ProductId = item.ProductId,
+                    Quantity = item.Quantity,
+                    ProductTitle = item.ProductTitle,
+                    ProductUrl = item.ProductUrl,
+                    PriceCents = item.PriceCents,
+                    PriceCurrency = item.PriceCurrency,
+                    CreatedAt = item.CreatedAt,
+                    UpdatedAt = item.UpdatedAt
+                }).ToArray() ?? Array.Empty<OrderCreatedMessage.OrderItemMessage>()
+            }).ToArray();
+            
+            await _rabbitMqService.Publish(messages, rabbitMqSettings.Value.OrderCreatedQueue, token);
 
-            // 6) Построим lookup по order_id, чтобы Map вернул OrderUnit с вложенными позициями
-            var lookup = insertedItems.ToLookup(x => x.OrderId);
-
-            // 7) Возвращаем результат (Map умеет принимать orderItemLookup = null)
-            return Map(insertedOrders, lookup);
+            return Map(insertedOrders, orderItemLookup);
         }
         catch (Exception e) 
         {
@@ -110,7 +124,7 @@ public class OrderService(UnitOfWork unitOfWork, IOrderRepository orderRepositor
 
             orderItemLookup = orderItems.ToLookup(x => x.OrderId);
         }
-
+        
         return Map(orders, orderItemLookup);
     }
     
