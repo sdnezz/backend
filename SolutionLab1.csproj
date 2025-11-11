@@ -20,7 +20,6 @@
       <ProjectReference Include="Models\Models.csproj" />
       <ProjectReference Include="Common\Common.csproj" />
       <ProjectReference Include="Messages\Messages.csproj" />
-
     </ItemGroup>
 
     <ItemGroup>
@@ -32,21 +31,33 @@
       <_ContentIncludedByDefault Remove="Common\obj\Common.csproj.nuget.dgspec.json" />
       <_ContentIncludedByDefault Remove="Common\obj\project.assets.json" />
       <_ContentIncludedByDefault Remove="Common\obj\project.packagespec.json" />
+<!--      <_ContentIncludedByDefault Remove="Consumer\obj\Consumer.csproj.nuget.dgspec.json" />-->
+<!--      <_ContentIncludedByDefault Remove="Consumer\obj\project.assets.json" />-->
+<!--      <_ContentIncludedByDefault Remove="Consumer\obj\project.packagespec.json" />-->
+<!--      <_ContentIncludedByDefault Remove="Consumer\appsettings.Development.json" />-->
+<!--      <_ContentIncludedByDefault Remove="Consumer\appsettings.json" />-->
+<!--      <_ContentIncludedByDefault Remove="Consumer\obj\Debug\net9.0\Consumer.sourcelink.json" />-->
+<!--      <_ContentIncludedByDefault Remove="Consumer\Properties\launchSettings.json" />-->
+<!--      <_ContentIncludedByDefault Remove="Consumer\appsettings.json" />-->
+<!--      <_ContentIncludedByDefault Remove="Consumer\appsettings.Development.json" />-->
     </ItemGroup>
     <ItemGroup>
       <Compile Remove="Migrations\**\*.cs" />
       <Compile Remove="Models\**\*.cs" />
       <Compile Remove="Common\**\*.cs" />
       <Compile Remove="Messages\**\*.cs" />
-
+      <Compile Remove="Consumer\**\*.cs" />  
+        
       <EmbeddedResource Remove="Migrations\**\*" />
       <EmbeddedResource Remove="Models\**\*" />
       <EmbeddedResource Remove="Common\**\*" />
       <EmbeddedResource Remove="Messages\**\*" />
-
+      <EmbeddedResource Remove="Consumer\**\*" />
+        
       <None Remove="Migrations\**\*" />
       <None Remove="Models\**\*" />
       <None Remove="Common\**\*" />
       <None Remove="Messages\**\*" />
+      <None Remove="Consumer\**\*" />
     </ItemGroup>
 </Project>

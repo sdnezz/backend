@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Common", "Common\Common.csp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Messages", "Messages\Messages.csproj", "{FC7A8425-A8A7-4E86-BC12-33902AA633A6}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Consumer", "Consumer\Consumer.csproj", "{365AC2F7-A023-48EA-BFB3-089A1719AB97}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -41,5 +43,9 @@ Global
 		{FC7A8425-A8A7-4E86-BC12-33902AA633A6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FC7A8425-A8A7-4E86-BC12-33902AA633A6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FC7A8425-A8A7-4E86-BC12-33902AA633A6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{365AC2F7-A023-48EA-BFB3-089A1719AB97}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{365AC2F7-A023-48EA-BFB3-089A1719AB97}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{365AC2F7-A023-48EA-BFB3-089A1719AB97}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{365AC2F7-A023-48EA-BFB3-089A1719AB97}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

@@ -25,10 +25,16 @@ builder.Services.AddScoped<ValidatorFactory>();
 builder.Services.AddScoped<RabbitMqService>();
 
 builder.Services.AddControllers();
+builder.Services.AddControllers().AddJsonOptions(options => 
+{
+    options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower;
+});
 // добавляем swagger
 builder.Services.AddSwaggerGen();
 
 // собираем билдер в приложение
+builder.Services.AddOpenApi();
+
 var app = builder.Build();
 
 // добавляем 2 миддлвари для обработки запросов в сваггер
@@ -38,12 +44,13 @@ app.UseSwaggerUI();
 // добавляем миддлварю для роутинга в нужный контроллер
 app.MapControllers();
 
-// вместо *** должен быть путь к проекту Migrations
-// по сути в этот момент будет происходить накатка миграций на базу
-Migrations.Program.Main([]); 
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+}
 
-// запускам приложение
-app.Run();
+app.UseHttpsRedirection();
 
 
 
