@@ -1,14 +1,8 @@
-using System;
-using System.Linq;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using Common;
 using Consumer.Clients;
 using Consumer.Config;
 using Messages;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Models.DTO.V1.Requests;
 using RabbitMQ.Client;

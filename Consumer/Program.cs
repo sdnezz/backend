@@ -1,9 +1,6 @@
-using System;
 using Consumer.Clients;
 using Consumer.Config;
 using Consumer.Consumers;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.Configure<RabbitMqSettings>(builder.Configuration.GetSection(nameof(RabbitMqSettings)));

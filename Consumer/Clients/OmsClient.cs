@@ -1,11 +1,7 @@
-using System.Net.Http;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using Common;
 using Models.DTO.V1.Requests;
 using Models.Dto.V1.Responses;
-using Models.DTO.V1.Responses;
 
 namespace Consumer.Clients;
 
