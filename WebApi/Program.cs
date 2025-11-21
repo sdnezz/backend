@@ -34,7 +34,7 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 });
 // добавляем swagger
 builder.Services.AddSwaggerGen();
-
+builder.Services.AddHostedService<OrderGenerator>();
 // собираем билдер в приложение
 builder.Services.AddOpenApi();
 
