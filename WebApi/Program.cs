@@ -7,6 +7,7 @@ using WebApi.DAL.Interfaces;
 using WebApi.DAL.Repositories;
 using WebApi.Validators;
 using WebApi.Config;
+using WebApi.Jobs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -34,6 +35,7 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 });
 // добавляем swagger
 builder.Services.AddSwaggerGen();
+builder.Services.AddHostedService<OrderGenerator>();
 
 // собираем билдер в приложение
 builder.Services.AddOpenApi();

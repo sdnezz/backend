@@ -4,18 +4,25 @@
         <TargetFramework>net9.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
+        <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Common\Common.csproj" />
-      <ProjectReference Include="..\Messages\Messages.csproj" />
-      <ProjectReference Include="..\Migrations\Migrations.csproj" />
-      <ProjectReference Include="..\Models\Models.csproj" />
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.0"/>
+        <PackageReference Include="RabbitMQ.Client" Version="7.1.2" />
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.9" />
-      <PackageReference Include="RabbitMQ.Client" Version="7.1.2" />
+        <ProjectReference Include="..\Common\Common.csproj" />
+        <ProjectReference Include="..\Messages\Messages.csproj" />
+        <ProjectReference Include="..\Migrations\Migrations.csproj" />
+        <ProjectReference Include="..\Models\Models.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Content Include="..\.dockerignore">
+        <Link>.dockerignore</Link>
+      </Content>
     </ItemGroup>
 
 </Project>

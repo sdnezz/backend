@@ -10,41 +10,30 @@ public class AuditLogService(UnitOfWork unitOfWork, IAuditLogOrderRepository aud
     public async Task<AuditLogOrderUnit[]> BatchInsert(AuditLogOrderUnit[] auditLogOrderUnits, CancellationToken token)
     {
         var now = DateTimeOffset.UtcNow;
-        await using var transaction = await unitOfWork.BeginTransactionAsync(token);
 
-        try
+        var logs = auditLogOrderUnits.Select(o => new V1AuditLogOrderDal
         {
-            var logs = auditLogOrderUnits.Select(o => new V1AuditLogOrderDal
-            {
-                OrderId = o.OrderId,
-                OrderItemId = o.OrderItemId,
-                CustomerId = o.CustomerId,
-                OrderStatus = o.OrderStatus,
-                CreatedAt = now,
-                UpdatedAt = now
-            }).ToArray();
-
-            var insertedAuditLogOrders = await auditLogOrderRepository.BulkInsert(logs, token);
+            OrderId = o.OrderId,
+            OrderItemId = o.OrderItemId,
+            CustomerId = o.CustomerId,
+            OrderStatus = o.OrderStatus,
+            CreatedAt = now,
+            UpdatedAt = now
+        }).ToArray();
             
-            await transaction.CommitAsync(token);
-            
-            var result = insertedAuditLogOrders.Select(x => new AuditLogOrderUnit
-            {
-                Id = x.Id,
-                OrderId = x.OrderId,
-                OrderItemId = x.OrderItemId,
-                CustomerId = x.CustomerId,
-                OrderStatus = x.OrderStatus,
-                CreatedAt = x.CreatedAt,
-                UpdatedAt = x.UpdatedAt
-            }).ToArray();
+        var insertedAuditLogOrders = await auditLogOrderRepository.BulkInsert(logs, token);
 
-            return result;
-        }
-        catch (Exception e) 
+        var result = insertedAuditLogOrders.Select(x => new AuditLogOrderUnit
         {
-            await transaction.RollbackAsync(token);
-            throw;
-        }
+            Id = x.Id,
+            OrderId = x.OrderId,
+            OrderItemId = x.OrderItemId,
+            CustomerId = x.CustomerId,
+            OrderStatus = x.OrderStatus,
+            CreatedAt = x.CreatedAt,
+            UpdatedAt = x.UpdatedAt
+        }).ToArray();
+
+        return result;
     }
 }
