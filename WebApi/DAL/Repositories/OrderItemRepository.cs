@@ -5,16 +5,12 @@ using WebApi.DAL.Models;
 
 namespace WebApi.DAL.Repositories;
 
-public class OrderItemRepository : IOrderItemRepository
+public class OrderItemRepository(UnitOfWork unitOfWork) : IOrderItemRepository
 {
-    private readonly UnitOfWork _unitOfWork;
-
-    public OrderItemRepository(UnitOfWork unitOfWork) => _unitOfWork = unitOfWork;
-
     public async Task<V1OrderItemDal[]> BulkInsert(V1OrderItemDal[] models, CancellationToken token)
     {
         var sql = @"
-            insert into order_items
+            insert into order_items 
             (
                 order_id,
                 product_id,
@@ -26,7 +22,7 @@ public class OrderItemRepository : IOrderItemRepository
                 created_at,
                 updated_at
             )
-            select
+            select 
                 order_id,
                 product_id,
                 quantity,
@@ -37,7 +33,7 @@ public class OrderItemRepository : IOrderItemRepository
                 created_at,
                 updated_at
             from unnest(@OrderItems)
-            returning
+            returning 
                 id,
                 order_id,
                 product_id,
@@ -50,18 +46,17 @@ public class OrderItemRepository : IOrderItemRepository
                 updated_at;
         ";
 
-        var conn = await _unitOfWork.GetConnection(token);
-
+        var conn = await unitOfWork.GetConnection(token);
         var res = await conn.QueryAsync<V1OrderItemDal>(new CommandDefinition(
             sql, new { OrderItems = models }, cancellationToken: token));
-
-        return res.AsList().ToArray();
+        
+        return res.ToArray();
     }
 
     public async Task<V1OrderItemDal[]> Query(QueryOrderItemsDalModel model, CancellationToken token)
     {
         var sql = new StringBuilder(@"
-            select
+            select 
                 id,
                 order_id,
                 product_id,
@@ -107,10 +102,10 @@ public class OrderItemRepository : IOrderItemRepository
             param.Add("Offset", model.Offset);
         }
 
-        var conn = await _unitOfWork.GetConnection(token);
+        var conn = await unitOfWork.GetConnection(token);
         var res = await conn.QueryAsync<V1OrderItemDal>(new CommandDefinition(
             sql.ToString(), param, cancellationToken: token));
-
-        return res.AsList().ToArray();
+        
+        return res.ToArray();
     }
-}
+}   

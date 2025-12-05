@@ -8,12 +8,15 @@ using WebApi.DAL.Models;
 
 namespace WebApi.BLL.Services;
 
-public class OrderService(UnitOfWork unitOfWork, IOrderRepository orderRepository, IOrderItemRepository orderItemRepository, RabbitMqService _rabbitMqService, IOptions<RabbitMqSettings> rabbitMqSettings)
+public class OrderService(
+    UnitOfWork unitOfWork, IOrderRepository orderRepository, IOrderItemRepository orderItemRepository, 
+    RabbitMqService rabbitMqService, IOptions<RabbitMqSettings> rabbitMqSettings
+    )
 {
     /// <summary>
     /// Метод создания заказов
     /// </summary>
-    public async Task<OrderUnit[]> BatchInsert(OrderUnit[] orderUnits, CancellationToken token)
+   public async Task<OrderUnit[]> BatchInsert(OrderUnit[] orderUnits, CancellationToken token)
     {
         var now = DateTimeOffset.UtcNow;
         await using var transaction = await unitOfWork.BeginTransactionAsync(token);
@@ -33,10 +36,10 @@ public class OrderService(UnitOfWork unitOfWork, IOrderRepository orderRepositor
             var insertedOrders = await orderRepository.BulkInsert(ordersDal, token);
 
             var orderItemsDal = new List<V1OrderItemDal>();
-            for (int i=0; i < orderUnits.Length; i++)
+            for (int i = 0; i < orderUnits.Length; i++)
             {
                 var orderId = insertedOrders[i].Id;
-                var orderItems = orderUnits[i].OrderItems;
+                var orderItems = orderUnits[i].OrderItems ?? Array.Empty<OrderItemUnit>();
                 orderItemsDal.AddRange(orderItems.Select(oi => new V1OrderItemDal
                 {
                     OrderId = orderId,
@@ -60,7 +63,7 @@ public class OrderService(UnitOfWork unitOfWork, IOrderRepository orderRepositor
             var orderItemLookup = insertedOrderItems.ToLookup(x => x.OrderId);
 
             await transaction.CommitAsync(token);
-            
+
             var messages = insertedOrders.Select(order => new OrderCreatedMessage
             {
                 Id = order.Id,
@@ -84,12 +87,12 @@ public class OrderService(UnitOfWork unitOfWork, IOrderRepository orderRepositor
                     UpdatedAt = item.UpdatedAt
                 }).ToArray() ?? Array.Empty<OrderCreatedMessage.OrderItemMessage>()
             }).ToArray();
-            
-            await _rabbitMqService.Publish(messages, rabbitMqSettings.Value.OrderCreatedQueue, token);
 
+            await rabbitMqService.Publish(messages, rabbitMqSettings.Value.OrderCreatedQueue, token);            
+            
             return Map(insertedOrders, orderItemLookup);
         }
-        catch (Exception e) 
+        catch (Exception e)
         {
             await transaction.RollbackAsync(token);
             throw;
@@ -111,7 +114,7 @@ public class OrderService(UnitOfWork unitOfWork, IOrderRepository orderRepositor
 
         if (orders.Length is 0)
         {
-            return Array.Empty<OrderUnit>();
+            return [];
         }
         
         ILookup<long, V1OrderItemDal> orderItemLookup = null;
@@ -124,7 +127,7 @@ public class OrderService(UnitOfWork unitOfWork, IOrderRepository orderRepositor
 
             orderItemLookup = orderItems.ToLookup(x => x.OrderId);
         }
-        
+
         return Map(orders, orderItemLookup);
     }
     

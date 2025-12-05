@@ -1,13 +1,12 @@
-using System.Text;
 using System.Diagnostics;
+using System.Text;
 using Common;
-using Consumer.Clients;
 using Consumer.Config;
-using Messages;
 using Microsoft.Extensions.Options;
-using Models.DTO.V1.Requests;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using Models.DTO.V1.Requests;
+using Messages;
 
 namespace Consumer.Consumers;
 

@@ -4,7 +4,6 @@
         <TargetFramework>net9.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
-        <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     </PropertyGroup>
 
     <ItemGroup>
@@ -25,7 +24,6 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Common\Common.csproj" />
-      <ProjectReference Include="..\Consumer\Consumer.csproj" />
       <ProjectReference Include="..\Messages\Messages.csproj" />
       <ProjectReference Include="..\Migrations\Migrations.csproj" />
       <ProjectReference Include="..\Models\Models.csproj" />

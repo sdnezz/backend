@@ -1,4 +1,6 @@
-﻿namespace Messages;
+﻿using Models.DTO.Common;
+
+namespace Messages;
 
 public class OrderCreatedMessage
 {

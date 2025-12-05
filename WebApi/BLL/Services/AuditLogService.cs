@@ -5,35 +5,44 @@ using WebApi.DAL.Models;
 
 namespace WebApi.BLL.Services;
 
-public class AuditLogService(UnitOfWork unitOfWork, IAuditLogOrderRepository auditLogOrderRepository)
-{
-    public async Task<AuditLogOrderUnit[]> BatchInsert(AuditLogOrderUnit[] auditLogOrderUnits, CancellationToken token)
+public class AuditLogService(UnitOfWork unitOfWork, IAuditLogOrderRepository auditLogOrderRepository){
+    public async Task<AuditLogOrderUnit[]> BatchInsert(AuditLogOrderUnit[] logUnits, CancellationToken token)
     {
         var now = DateTimeOffset.UtcNow;
+        await using var transaction = await unitOfWork.BeginTransactionAsync(token);
 
-        var logs = auditLogOrderUnits.Select(o => new V1AuditLogOrderDal
+        try
         {
-            OrderId = o.OrderId,
-            OrderItemId = o.OrderItemId,
-            CustomerId = o.CustomerId,
-            OrderStatus = o.OrderStatus,
-            CreatedAt = now,
-            UpdatedAt = now
-        }).ToArray();
+            var dalModels = logUnits.Select(x => new V1AuditLogOrderDal
+            {
+                OrderId = x.OrderId,
+                OrderItemId = x.OrderItemId,
+                CustomerId = x.CustomerId,
+                OrderStatus = x.OrderStatus,
+                CreatedAt = now,
+                UpdatedAt = now
+            }).ToArray();
+
+            var insertedLogs = await auditLogOrderRepository.BulkInsert(dalModels, token);
+
+            await transaction.CommitAsync(token);
             
-        var insertedAuditLogOrders = await auditLogOrderRepository.BulkInsert(logs, token);
+            var result = insertedLogs.Select(x => new AuditLogOrderUnit
+            {
+                OrderId = x.OrderId,
+                OrderItemId = x.OrderItemId,
+                CustomerId = x.CustomerId,
+                OrderStatus = x.OrderStatus,
+                CreatedAt = x.CreatedAt,
+                UpdatedAt = x.UpdatedAt
+            }).ToArray();
 
-        var result = insertedAuditLogOrders.Select(x => new AuditLogOrderUnit
+            return result;
+        }
+        catch
         {
-            Id = x.Id,
-            OrderId = x.OrderId,
-            OrderItemId = x.OrderItemId,
-            CustomerId = x.CustomerId,
-            OrderStatus = x.OrderStatus,
-            CreatedAt = x.CreatedAt,
-            UpdatedAt = x.UpdatedAt
-        }).ToArray();
-
-        return result;
+            await transaction.RollbackAsync(token);
+            throw;
+        }
     }
 }

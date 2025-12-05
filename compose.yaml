@@ -57,7 +57,7 @@
   webapi:
     build:
       context: .
-      dockerfile: WebApi/Dockerfile
+      dockerfile: WebApp/Dockerfile
     container_name: webapi
     ports:
       - "5000:8080"
@@ -82,12 +82,12 @@
       - ConnectionStrings__DefaultConnection=Host=pgbouncer;Port=6432;Database=postgres;Username=user;Password=mypassword
       - RabbitMQ__Host=rabbitmq
       - RabbitMQ__Port=5672
+    deploy:
+      replicas: 5
     depends_on:
       - rabbitmq
       - pgbouncer
     restart: unless-stopped
-
-
 volumes:
   pgdata:
   rabbitmq_data:

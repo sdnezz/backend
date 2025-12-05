@@ -9,7 +9,7 @@ using WebApi.Validators;
 namespace WebApi.Controllers.V1;
 
 
-[Route("api/v1/audit/log-order")]
+[Route("api/v1/audit-log")]
 public class AuditLogOrderController(AuditLogService auditLogService, ValidatorFactory validatorFactory) : ControllerBase
 {
     [HttpPost("batch-create")]
@@ -20,23 +20,23 @@ public class AuditLogOrderController(AuditLogService auditLogService, ValidatorF
         {
             return BadRequest(validationResult.ToDictionary());
         }
-        
-        var auditLogOrderUnits = request.Orders.Select(x => new AuditLogOrderUnit
+
+        var logUnits = request.Orders.Select(x => new AuditLogOrderUnit
         {
             OrderId = x.OrderId,
             OrderItemId = x.OrderItemId,
             CustomerId = x.CustomerId,
             OrderStatus = x.OrderStatus
         }).ToArray();
-        
-        var res = await auditLogService.BatchInsert(auditLogOrderUnits, token);
+
+        var res = await auditLogService.BatchInsert(logUnits, token);
 
         return Ok(new V1AuditLogOrderResponse
         {
             Orders = Map(res)
         });
     }
-    
+
     private AuditLogOrderUnit[] Map(AuditLogOrderUnit[] logs)
     {
         return logs.Select(x => new AuditLogOrderUnit
@@ -46,7 +46,7 @@ public class AuditLogOrderController(AuditLogService auditLogService, ValidatorF
             CustomerId = x.CustomerId,
             OrderStatus = x.OrderStatus,
             CreatedAt = x.CreatedAt,
-            UpdatedAt = x.UpdatedAt,
+            UpdatedAt = x.UpdatedAt
         }).ToArray();
     }
 }

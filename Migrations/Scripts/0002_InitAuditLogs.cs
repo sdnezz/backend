@@ -39,5 +39,4 @@ public class InitAuditLogs : Migration {
     {
         throw new NotImplementedException();
     }
-    
 }
