@@ -50,6 +50,7 @@ public class UnitOfWork(IOptions<DbSettings> dbSettings): IDisposable
         DisposeConnection();
     }
     
+    
     private void DisposeConnection()
     {
         _connection?.Dispose();

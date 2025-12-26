@@ -72,7 +72,6 @@
       - rabbitmq
     restart: unless-stopped
 
-
   consumer:
     build:
       context: .
@@ -83,7 +82,7 @@
       - RabbitMQ__Host=rabbitmq
       - RabbitMQ__Port=5672
     deploy:
-      replicas: 5
+      replicas: 1
     depends_on:
       - rabbitmq
       - pgbouncer
