@@ -10,16 +10,25 @@ namespace Consumer.Consumers;
 public class BatchOmsOrderCreatedConsumer(
     IOptions<RabbitMqSettings> rabbitMqSettings,
     IServiceProvider serviceProvider)
-    : BaseBatchMessageConsumer<OrderCreatedMessage>(rabbitMqSettings.Value)
+    : BaseBatchMessageConsumer<OrderCreatedMessage>(rabbitMqSettings.Value, settings => settings.OrderCreated)
 {
+    private static int _counter = 0;
+
     protected override async Task ProcessMessages(OrderCreatedMessage[] messages)
     {
+        Interlocked.Increment(ref _counter);
+
+        if (_counter % 5 == 0)
+        {
+            throw new InvalidOperationException($"Simulated error on batch #{_counter}");
+        }
+
         using var scope = serviceProvider.CreateScope();
         var client = scope.ServiceProvider.GetRequiredService<OmsClient>();
-        
+
         await client.LogOrder(new V1AuditLogOrderRequest
         {
-            Orders = messages.SelectMany(order => order.OrderItems.Select(ol => 
+            Orders = messages.SelectMany(order => order.OrderItems.Select(ol =>
                 new V1AuditLogOrderRequest.LogOrder
                 {
                     OrderId = order.Id,

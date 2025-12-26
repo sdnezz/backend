@@ -12,6 +12,7 @@ using WebApi.Jobs;
 var builder = WebApplication.CreateBuilder(args);
 
 DefaultTypeMap.MatchNamesWithUnderscores = true;
+
 builder.Services.AddScoped<UnitOfWork>();
 
 builder.Services.Configure<DbSettings>(builder.Configuration.GetSection(nameof(DbSettings)));
@@ -55,7 +56,6 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.UseHttpsRedirection();
 Migrations.Program.Main([]); 
 app.Run();
 

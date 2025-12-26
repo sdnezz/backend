@@ -1,4 +1,3 @@
-using System.Text;
 using Dapper;
 using WebApi.DAL.Interfaces;
 using WebApi.DAL.Models;

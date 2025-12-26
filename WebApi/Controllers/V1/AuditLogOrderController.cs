@@ -5,9 +5,7 @@ using Models.Dto.V1.Responses;
 using WebApi.BLL.Services;
 using WebApi.Validators;
 
-
 namespace WebApi.Controllers.V1;
-
 
 [Route("api/v1/audit-log")]
 public class AuditLogOrderController(AuditLogService auditLogService, ValidatorFactory validatorFactory) : ControllerBase

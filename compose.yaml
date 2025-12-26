@@ -1,6 +1,6 @@
 ﻿services:
   postgres:
-    image: postgres
+    image: postgres:17
     environment:
       - POSTGRES_USER=user
       - POSTGRES_PASSWORD=mypassword
@@ -8,8 +8,7 @@
       - POSTGRES_HOST_AUTH_METHOD=scram-sha-256
       - POSTGRES_INITDB_ARGS=--auth=scram-sha-256
     volumes:
-      - pgdata:/var/lib/postgresql/newdata/
-      - ./initdb.d:/docker-entrypoint-initdb.d
+      - pgdata:/var/lib/postgresql/data/
       - ./postgresql.conf:/etc/postgresql/postgresql.conf
     command: postgres -c config_file=/etc/postgresql/postgresql.conf
     restart: unless-stopped
@@ -57,7 +56,7 @@
   webapi:
     build:
       context: .
-      dockerfile: WebApp/Dockerfile
+      dockerfile: WebApi/Dockerfile
     container_name: webapi
     ports:
       - "5000:8080"
@@ -72,6 +71,7 @@
       - rabbitmq
     restart: unless-stopped
 
+
   consumer:
     build:
       context: .
@@ -82,11 +82,13 @@
       - RabbitMQ__Host=rabbitmq
       - RabbitMQ__Port=5672
     deploy:
-      replicas: 1
+      replicas: 5
     depends_on:
       - rabbitmq
       - pgbouncer
     restart: unless-stopped
+
+
 volumes:
   pgdata:
   rabbitmq_data:

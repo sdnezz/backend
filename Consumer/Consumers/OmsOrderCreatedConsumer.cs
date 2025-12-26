@@ -30,8 +30,9 @@ public class OmsOrderCreatedConsumer : IHostedService
     {
         _connection = await _factory.CreateConnectionAsync(cancellationToken);
         _channel = await _connection.CreateChannelAsync(cancellationToken: cancellationToken);
+        
         await _channel.QueueDeclareAsync(
-            queue: _rabbitMqSettings.Value.OrderCreatedQueue,
+            queue: _rabbitMqSettings.Value.OrderCreated.Queue,
             durable: false,
             exclusive: false,
             autoDelete: false,
@@ -49,6 +50,7 @@ public class OmsOrderCreatedConsumer : IHostedService
             {
                 var body = args.Body.ToArray();
                 var message = Encoding.UTF8.GetString(body);
+                
                 var order = message.FromJson<OrderCreatedMessage>();
 
                 Console.WriteLine("Received: " + message);
@@ -79,7 +81,7 @@ public class OmsOrderCreatedConsumer : IHostedService
         };
 
         await _channel.BasicConsumeAsync(
-            queue: _rabbitMqSettings.Value.OrderCreatedQueue,
+            queue: _rabbitMqSettings.Value.OrderCreated.Queue,
             autoAck: false,
             consumer: _consumer,
             cancellationToken: cancellationToken);

@@ -5,20 +5,20 @@ COPY Common/Common.csproj Common/
 COPY Messages/Messages.csproj Messages/
 COPY Migrations/Migrations.csproj Migrations/
 COPY Models/Models.csproj Models/
-COPY WebApp/WebApp.csproj WebApp/
+COPY WebApi/WebApi.csproj WebApi/
 
-RUN dotnet restore "WebApp/WebApp.csproj"
+RUN dotnet restore "WebApi/WebApi.csproj"
 
 COPY Common/ Common/
 COPY Messages/ Messages/
 COPY Migrations/ Migrations/
 COPY Models/ Models/
-COPY WebApp/ WebApp/
+COPY WebApi/ WebApi/
 
-WORKDIR /src/WebApp
+WORKDIR /src/WebApi
 RUN dotnet publish -c Release -o /app/publish
 
 FROM mcr.microsoft.com/dotnet/aspnet:9.0
 WORKDIR /app
 COPY --from=build /app/publish .
-ENTRYPOINT ["dotnet", "WebApp.dll"]
+ENTRYPOINT ["dotnet", "WebApi.dll"]
