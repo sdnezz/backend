@@ -4,11 +4,12 @@ using Models.DTO.V1.Responses;
 using WebApi.BLL.Models;
 using WebApi.BLL.Services;
 using WebApi.Validators;
-using QueryOrderItemsModel = WebApi.BLL.Models.QueryOrderItemsModel;
-using V1QueryOrdersRequest = Models.DTO.V1.Requests.QueryOrderItemsModel;
+
+namespace WebApi.Controllers.V1;
 
 [Route("api/v1/order")]
-public class OrderController(OrderService orderService, ValidatorFactory validatorFactory) : ControllerBase
+[ApiController]
+public class OrderController(OrderService orderService, ValidatorFactory validatorFactory): ControllerBase
 {
     [HttpPost("batch-create")]
     public async Task<ActionResult<V1CreateOrderResponse>> V1BatchCreate([FromBody] V1CreateOrderRequest request, CancellationToken token)
@@ -18,7 +19,7 @@ public class OrderController(OrderService orderService, ValidatorFactory validat
         {
             return BadRequest(validationResult.ToDictionary());
         }
-
+        
         var res = await orderService.BatchInsert(request.Orders.Select(x => new OrderUnit
         {
             CustomerId = x.CustomerId,
@@ -50,7 +51,7 @@ public class OrderController(OrderService orderService, ValidatorFactory validat
         {
             return BadRequest(validationResult.ToDictionary());
         }
-
+        
         var res = await orderService.GetOrders(new QueryOrderItemsModel
         {
             Ids = request.Ids,
@@ -59,31 +60,13 @@ public class OrderController(OrderService orderService, ValidatorFactory validat
             PageSize = request.PageSize ?? 0,
             IncludeOrderItems = request.IncludeOrderItems
         }, token);
-
+        
         return Ok(new V1QueryOrdersResponse
         {
             Orders = Map(res)
         });
     }
-
-    [HttpPut("status")]
-    [ProducesResponseType(typeof(V1UpdateOrderStatusResponse), 200)]
-    [ProducesResponseType(400)]
-    public async Task<ActionResult<V1UpdateOrderStatusResponse>> UpdateOrdersStatus(
-        [FromBody] V1UpdateOrdersStatusRequest request,
-        CancellationToken token)
-    {
-        try
-        {
-            await orderService.UpdateOrdersStatusAsync(request.OrderIds, request.NewStatus, token);
-            return Ok(new V1UpdateOrderStatusResponse());
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
-    }
-
+    
     private Models.DTO.Common.OrderUnit[] Map(OrderUnit[] orders)
     {
         return orders.Select(x => new Models.DTO.Common.OrderUnit

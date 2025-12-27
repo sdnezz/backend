@@ -1,10 +1,9 @@
+﻿namespace Migrations.Scripts;
+
 using FluentMigrator;
 
-namespace Migrations.Scripts;
-
-[Migration(2)]
-public class InitAuditLogs : Migration {
-    
+[Migration(3)]
+public class InitLogTable: Migration {
     public override void Up()
     {
         var sql = @"
@@ -19,7 +18,6 @@ public class InitAuditLogs : Migration {
             );
 
             create index if not exists idx_audit_log_order_order_id on audit_log_order(order_id);
-            create index if not exists idx_audit_log_order_customer_id on audit_log_order(customer_id);
 
             create type v1_audit_log_order as (
                 id bigint,
@@ -29,6 +27,13 @@ public class InitAuditLogs : Migration {
                 order_status text,
                 created_at timestamp with time zone,
                 updated_at timestamp with time zone
+            );
+
+            create type v1_update_log_order AS (
+                order_id bigint,
+                order_item_id bigint,
+                customer_id bigint,
+                order_status text
             );
         ";
         

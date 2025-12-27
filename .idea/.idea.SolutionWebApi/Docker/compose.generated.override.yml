@@ -1,0 +1,38 @@
+# This is a generated file. Not intended for manual editing.
+services:
+  consumer:
+    build:
+      context: "C:\\Users\\twink\\Desktop\\vse\\SolutionRIderBackend\\SolutionWebApi"
+      dockerfile: "Consumer/Dockerfile"
+      target: "base"
+    command: []
+    entrypoint:
+    - "dotnet"
+    - "/app/bin/Debug/net9.0/Consumer.dll"
+    environment:
+      DOTNET_USE_POLLING_FILE_WATCHER: "true"
+    image: "consumer:dev"
+    ports: []
+    volumes:
+    - "C:\\Users\\twink\\Desktop\\vse\\SolutionRIderBackend\\SolutionWebApi\\Consumer:/app:rw"
+    - "C:\\Users\\twink\\Desktop\\vse\\SolutionRIderBackend\\SolutionWebApi:/src:rw"
+    - "C:\\Users\\twink\\.nuget\\packages:/home/app/.nuget/packages"
+    working_dir: "/app"
+  webapi:
+    build:
+      context: "C:\\Users\\twink\\Desktop\\vse\\SolutionRIderBackend\\SolutionWebApi"
+      dockerfile: "WebApi/Dockerfile"
+      target: "base"
+    command: []
+    entrypoint:
+    - "dotnet"
+    - "/app/bin/Debug/net9.0/WebApi.dll"
+    environment:
+      DOTNET_USE_POLLING_FILE_WATCHER: "true"
+    image: "webapi:dev"
+    ports: []
+    volumes:
+    - "C:\\Users\\twink\\Desktop\\vse\\SolutionRIderBackend\\SolutionWebApi\\WebApi:/app:rw"
+    - "C:\\Users\\twink\\Desktop\\vse\\SolutionRIderBackend\\SolutionWebApi:/src:rw"
+    - "C:\\Users\\twink\\.nuget\\packages:/home/app/.nuget/packages"
+    working_dir: "/app"

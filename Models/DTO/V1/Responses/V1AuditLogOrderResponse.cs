@@ -1,6 +1,6 @@
-using Models.DTO.Common;
+﻿using Models.DTO.Common;
 
-namespace Models.Dto.V1.Responses;
+namespace Models.DTO.V1.Responses;
 
 public class V1AuditLogOrderResponse
 {

@@ -1,18 +1,21 @@
-﻿using Messages;
-using Microsoft.Extensions.Options;
+﻿using Microsoft.Extensions.Options;
 using WebApi.BLL.Models;
 using WebApi.Config;
 using WebApi.DAL;
 using WebApi.DAL.Interfaces;
 using WebApi.DAL.Models;
+using WebApi.DAL.Repositories;
+using Messages;
+using ModelsDtoCommon = Models.DTO.Common;
 
 namespace WebApi.BLL.Services;
 
-public class OrderService(
-    UnitOfWork unitOfWork, IOrderRepository orderRepository, IOrderItemRepository orderItemRepository,
-    RabbitMqService rabbitMqService, IOptions<RabbitMqSettings> rabbitMqSettings
-)
+public class OrderService(UnitOfWork unitOfWork, IOrderRepository orderRepository, IOrderItemRepository orderItemRepository,
+    KafkaProducer _kafkaProducer, IOptions<KafkaSettings> settings)
 {
+    /// <summary>
+    /// Метод создания заказов
+    /// </summary>
     public async Task<OrderUnit[]> BatchInsert(OrderUnit[] orderUnits, CancellationToken token)
     {
         var now = DateTimeOffset.UtcNow;
@@ -20,83 +23,84 @@ public class OrderService(
 
         try
         {
-            var ordersDal = orderUnits.Select(o => new V1OrderDal
+            // тут ваш бизнес код по инсерту данных в БД
+            // нужно положить в БД заказы(orders), а потом их позиции (orderItems)
+            // помните, что каждый orderItem содержит ссылку на order (столбец order_id)
+            // OrderItem-ов может быть несколько
+
+            V1OrderDal[] orderDals = orderUnits.Select(o => new V1OrderDal
             {
+                Id = o.Id,
                 CustomerId = o.CustomerId,
                 DeliveryAddress = o.DeliveryAddress,
                 TotalPriceCents = o.TotalPriceCents,
                 TotalPriceCurrency = o.TotalPriceCurrency,
                 CreatedAt = now,
-                UpdatedAt = now,
-                Status = "Created"
+                UpdatedAt = now
             }).ToArray();
+            var orders = await orderRepository.BulkInsert(orderDals, token);
 
-            var insertedOrders = await orderRepository.BulkInsert(ordersDal, token);
-
-            var orderItemsDal = new List<V1OrderItemDal>();
-            for (int i = 0; i < orderUnits.Length; i++)
+            V1OrderItemDal[] orderItemDals = orderUnits.SelectMany((o, index) => o.OrderItems.Select(i => new V1OrderItemDal
             {
-                var orderId = insertedOrders[i].Id;
-                var orderItems = orderUnits[i].OrderItems ?? Array.Empty<OrderItemUnit>();
-                orderItemsDal.AddRange(orderItems.Select(oi => new V1OrderItemDal
+                Id = i.Id,
+                OrderId = orders[index].Id,
+                ProductId = i.ProductId,
+                Quantity = i.Quantity,
+                ProductTitle = i.ProductTitle,
+                ProductUrl = i.ProductUrl,
+                PriceCents = i.PriceCents,
+                PriceCurrency = i.PriceCurrency,
+                CreatedAt = now,
+                UpdatedAt = now
+            })).ToArray();
+            
+            var orderItems = await orderItemRepository.BulkInsert(orderItemDals, token);
+            
+            ILookup<long, V1OrderItemDal> orderItemLookup = orderItems.ToLookup(x => x.OrderId);
+            
+            OmsOrderCreatedMessage[] messages = orders
+                .Select(o => new OmsOrderCreatedMessage
                 {
-                    OrderId = orderId,
-                    ProductId = oi.ProductId,
-                    Quantity = oi.Quantity,
-                    ProductTitle = oi.ProductTitle,
-                    ProductUrl = oi.ProductUrl,
-                    PriceCents = oi.PriceCents,
-                    PriceCurrency = oi.PriceCurrency,
-                    CreatedAt = now,
-                    UpdatedAt = now
-                }));
-            }
-
-            V1OrderItemDal[] insertedOrderItems = Array.Empty<V1OrderItemDal>();
-            if (orderItemsDal.Any())
-            {
-                insertedOrderItems = await orderItemRepository.BulkInsert(orderItemsDal.ToArray(), token);
-            }
-
-            var orderItemLookup = insertedOrderItems.ToLookup(x => x.OrderId);
-
+                    Id = o.Id,
+                    CustomerId = o.CustomerId,
+                    DeliveryAddress = o. DeliveryAddress,
+                    TotalPriceCents = o.TotalPriceCents,
+                    TotalPriceCurrency = o.TotalPriceCurrency,
+                    CreatedAt = o.CreatedAt,
+                    UpdatedAt = o.UpdatedAt,
+                    OrderItems = orderItems
+                        .Where(i => i.OrderId == o.Id)
+                        .Select(i => new ModelsDtoCommon.OrderItemUnit
+                        {
+                            Id = i.Id,
+                            OrderId = i.OrderId,
+                            ProductId = i.ProductId,
+                            Quantity = i.Quantity,
+                            ProductTitle = i.ProductTitle,
+                            ProductUrl = i.ProductUrl,
+                            PriceCents = i.PriceCents,
+                            PriceCurrency = i.PriceCurrency,
+                            CreatedAt = i.CreatedAt,
+                            UpdatedAt = i.UpdatedAt
+                        })
+                        .ToArray()
+                })
+                .ToArray();
+            
+            await _kafkaProducer.Produce(settings.Value.OmsOrderCreatedTopic, messages.Select(m => (m.CustomerId.ToString(), m)).ToArray(), token);
             await transaction.CommitAsync(token);
-
-            var messages = insertedOrders.Select(order => new OrderCreatedMessage
-            {
-                Id = order.Id,
-                CustomerId = order.CustomerId,
-                DeliveryAddress = order.DeliveryAddress,
-                TotalPriceCents = order.TotalPriceCents,
-                TotalPriceCurrency = order.TotalPriceCurrency,
-                CreatedAt = order.CreatedAt,
-                UpdatedAt = order.UpdatedAt,
-                OrderItems = orderItemLookup[order.Id]?.Select(item => new OrderCreatedMessage.OrderItemMessage
-                {
-                    Id = item.Id,
-                    OrderId = item.OrderId,
-                    ProductId = item.ProductId,
-                    Quantity = item.Quantity,
-                    ProductTitle = item.ProductTitle,
-                    ProductUrl = item.ProductUrl,
-                    PriceCents = item.PriceCents,
-                    PriceCurrency = item.PriceCurrency,
-                    CreatedAt = item.CreatedAt,
-                    UpdatedAt = item.UpdatedAt
-                }).ToArray() ?? Array.Empty<OrderCreatedMessage.OrderItemMessage>()
-            }).ToArray();
-
-            await rabbitMqService.Publish(messages, token);
-
-            return Map(insertedOrders, orderItemLookup);
+            return Map(orders, orderItemLookup);
         }
-        catch (Exception e)
+        catch (Exception e) 
         {
             await transaction.RollbackAsync(token);
             throw;
         }
     }
-
+    
+    /// <summary>
+    /// Метод получения заказов
+    /// </summary>
     public async Task<OrderUnit[]> GetOrders(QueryOrderItemsModel model, CancellationToken token)
     {
         var orders = await orderRepository.Query(new QueryOrdersDalModel
@@ -111,7 +115,7 @@ public class OrderService(
         {
             return [];
         }
-
+        
         ILookup<long, V1OrderItemDal> orderItemLookup = null;
         if (model.IncludeOrderItems)
         {
@@ -125,48 +129,7 @@ public class OrderService(
 
         return Map(orders, orderItemLookup);
     }
-
-    public async Task UpdateOrdersStatusAsync(long[] orderIds, string newStatus, CancellationToken token)
-    {
-        if (orderIds.Length == 0) return;
-
-        var orders = await orderRepository.GetByIdsAsync(orderIds.ToList(), token);
-
-        var orderDict = orders.ToDictionary(o => o.Id, o => o);
-
-        foreach (var orderId in orderIds)
-        {
-            if (!orderDict.TryGetValue(orderId, out var order))
-                continue;
-
-            if (!CanTransition(order.Status, newStatus))
-                throw new InvalidOperationException($"Cannot transition from '{order.Status}' to '{newStatus}' for order {orderId}.");
-        }
-
-        await orderRepository.UpdateStatusesAsync(orderIds.ToList(), newStatus, token);
-
-        var statusChangedMessages = orderIds.Select(id => new OmsOrderStatusChangedMessage
-        {
-            OrderId = id,
-            OrderStatus = newStatus
-        }).ToArray();
-
-        await rabbitMqService.Publish(statusChangedMessages, token);
-    }
-
-    private bool CanTransition(string currentStatus, string newStatus)
-    {
-        var transitions = new Dictionary<string, HashSet<string>>
-        {
-            ["Created"] = new() { "Processed", "Cancelled" },
-            ["Processed"] = new() { "Completed", "Cancelled" },
-            ["Cancelled"] = new(),
-            ["Completed"] = new(),
-        };
-
-        return transitions.TryGetValue(currentStatus, out var allowed) && allowed.Contains(newStatus);
-    }
-
+    
     private OrderUnit[] Map(V1OrderDal[] orders, ILookup<long, V1OrderItemDal> orderItemLookup = null)
     {
         return orders.Select(x => new OrderUnit

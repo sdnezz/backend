@@ -1,9 +1,8 @@
 ﻿using Microsoft.Extensions.Configuration;
 
 namespace Migrations;
+
 public static class Program
-
-
 {
     public static void Main(string[] args)
     {
@@ -25,6 +24,7 @@ public static class Program
 
         // Получаем строку подключения из конфига `appsettings.{Environment}.json`
         var connectionString = config["DbSettings:MigrationConnectionString"];
+        Console.WriteLine(connectionString);
         var migrationRunner = new MigratorRunner(connectionString);
         
         // Мигрируемся

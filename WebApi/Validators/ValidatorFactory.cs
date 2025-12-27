@@ -1,5 +1,5 @@
 ﻿using FluentValidation;
-using Models.DTO.V1.Requests;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace WebApi.Validators;
 

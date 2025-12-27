@@ -1,9 +1,11 @@
-﻿namespace WebApi.DAL.Models;
+﻿using Models.DTO.Common;
 
-public class V1OrderDal
+namespace Messages;
+
+public class OmsOrderCreatedMessage : BaseMessage
 {
     public long Id { get; set; }
-
+    
     public long CustomerId { get; set; }
 
     public string DeliveryAddress { get; set; }
@@ -15,4 +17,6 @@ public class V1OrderDal
     public DateTimeOffset CreatedAt { get; set; }
     
     public DateTimeOffset UpdatedAt { get; set; }
+
+    public OrderItemUnit[] OrderItems { get; set; }
 }

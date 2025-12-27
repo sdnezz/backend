@@ -1,35 +1,35 @@
+﻿using System.Diagnostics;
 using System.Text.Json;
 using Dapper;
 using FluentValidation;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.VisualBasic.CompilerServices;
 using WebApi.BLL.Services;
+using WebApi.Config;
 using WebApi.DAL;
 using WebApi.DAL.Interfaces;
 using WebApi.DAL.Repositories;
 using WebApi.Validators;
-using WebApi.Config;
+using Common;
 using WebApi.Jobs;
 
+// создается билдер веб приложения
 var builder = WebApplication.CreateBuilder(args);
-
 DefaultTypeMap.MatchNamesWithUnderscores = true;
 
 builder.Services.AddScoped<UnitOfWork>();
-
 builder.Services.Configure<DbSettings>(builder.Configuration.GetSection(nameof(DbSettings)));
-builder.Services.Configure<RabbitMqSettings>(builder.Configuration.GetSection(nameof(RabbitMqSettings)));
-// зависимость, которая автоматически подхватывает все контроллеры в проекте
-
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IOrderItemRepository, OrderItemRepository>();
+builder.Services.AddScoped<IAuditLogOrderRepository, AuditLogOrderRepository>();
 builder.Services.AddScoped<OrderService>();
-
+builder.Services.AddScoped<AuditLogOrderService>();
 builder.Services.AddValidatorsFromAssemblyContaining(typeof(Program));
 builder.Services.AddScoped<ValidatorFactory>();
-builder.Services.AddScoped<RabbitMqService>();
-builder.Services.AddScoped<AuditLogService>();
-builder.Services.AddScoped<IAuditLogOrderRepository, AuditLogOrderRepository>();
-
-builder.Services.AddControllers();
+builder.Services.Configure<KafkaSettings>(builder.Configuration.GetSection(nameof(KafkaSettings)));
+builder.Services.AddScoped<KafkaProducer>();
+// зависимость, которая автоматически подхватывает все контроллеры в проекте
 builder.Services.AddControllers().AddJsonOptions(options => 
 {
     options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower;
@@ -39,8 +39,6 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddHostedService<OrderGenerator>();
 
 // собираем билдер в приложение
-builder.Services.AddOpenApi();
-
 var app = builder.Build();
 
 // добавляем 2 миддлвари для обработки запросов в сваггер
@@ -50,13 +48,8 @@ app.UseSwaggerUI();
 // добавляем миддлварю для роутинга в нужный контроллер
 app.MapControllers();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
-
+// по сути в этот момент будет происходить накатка миграций на базу
 Migrations.Program.Main([]); 
-app.Run();
 
-//docker-compose exec postgres psql -U user -d postgres -c "\dt" - просмотр таблиц
+// запускам приложение
+app.Run();

@@ -1,5 +1,7 @@
 ﻿using FluentMigrator.Runner.VersionTableInfo;
 
+namespace Migrations;
+
 public class VersionTable : IVersionTableMetaData
 {
     public bool OwnsSchema => true;
